@@ -1,5 +1,9 @@
+using System;
 using BepInEx;
 using HarmonyLib;
+using UnityEngine;
+using UnityEngine.UI;
+using static EndingIndicators.Config;
 using static SaveSlotCompletionIcons;
 
 namespace EndingIndicators;
@@ -7,14 +11,10 @@ namespace EndingIndicators;
 [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
 public class Plugin : BaseUnityPlugin
 {
-    private static Harmony _harmony = null!;
+    static Harmony _harmony = null!;
 
-    private void Awake()
+    void Awake()
     {
-        // TODO(Unavailable): Configuration:
-        //  - Show not completed icons.
-        //  - Include `MrMushroom` ending.
-        //  - Reverse list order.
         _harmony = Harmony.CreateAndPatchAll(typeof(Patches));
     }
 }
@@ -24,13 +24,45 @@ class Patches
     [HarmonyPatch(typeof(SaveSlotCompletionIcons), "SetCompletionIconState")]
     static void Postfix(SaveSlotCompletionIcons __instance, SaveStats SaveStats)
     {
-        CompletionState completionState = SaveStats.CompletedEndings;
+        var completionState = SaveStats.CompletedEndings;
+
+        if (
+            Config.EndingDisplay.Value is EndingDisplayOpts.ShowAll
+            // NOTE: Just for good messure.
+            && __instance.completionIcons.Count > 0
+        )
+        {
+            __instance.completionIcons[0].icon.transform.parent.gameObject.SetActive(true);
+        }
+
         foreach (var completionIcon in __instance.completionIcons)
         {
-            completionIcon.icon.gameObject.SetActive(
+            var isEndingCompleted =
                 completionIcon.state != CompletionState.None
-                    && completionState.HasFlag(completionIcon.state)
-            );
+                && completionState.HasFlag(completionIcon.state);
+
+            if (Config.EndingDisplay.Value is EndingDisplayOpts.OnlyCompleted)
+            {
+                completionIcon.icon.gameObject.SetActive(isEndingCompleted);
+            }
+            else if (
+                Config.EndingDisplay.Value
+                is (EndingDisplayOpts.ShowAllIfAnyCompleted or EndingDisplayOpts.ShowAll)
+            )
+            {
+                completionIcon.icon.gameObject.SetActive(true);
+                if (!isEndingCompleted)
+                    completionIcon.icon.GetComponent<Image>().color -= new Color(0f, 0f, 0f, .75f);
+            }
+            else
+            {
+                throw new InvalidOperationException("Someone forgot to update this branch :)");
+            }
+
+            if (Config.NaturalOrder.Value)
+            {
+                completionIcon.icon.transform.SetAsFirstSibling();
+            }
         }
     }
 }

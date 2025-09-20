@@ -1,3 +1,3 @@
 # Ending Indicators
 
-A `Hollow Knight: Silksong` 
+A `Hollow Knight: Silksong` mod
