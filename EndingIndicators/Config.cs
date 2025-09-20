@@ -53,7 +53,7 @@ static class Config
             Application.persistentDataPath,
             accId,
             "plugins",
-            PluginInfo.PLUGIN_GUID,
+            Plugin.Id,
             $"config.dat"
         );
     }

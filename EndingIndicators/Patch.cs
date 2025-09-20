@@ -8,8 +8,8 @@ using static SaveSlotCompletionIcons;
 
 namespace EndingIndicators;
 
-[BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
-public class Plugin : BaseUnityPlugin
+[BepInAutoPlugin(id: "unavailable.ending-indicators")]
+public partial class Plugin : BaseUnityPlugin
 {
     static Harmony _harmony = null!;
 
