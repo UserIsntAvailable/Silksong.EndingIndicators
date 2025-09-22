@@ -1,7 +1,7 @@
 using System;
 using BepInEx;
 using HarmonyLib;
-using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static EndingIndicators.Config;
 using static SaveSlotCompletionIcons;
@@ -16,53 +16,82 @@ public partial class Plugin : BaseUnityPlugin
     void Awake()
     {
         _harmony = Harmony.CreateAndPatchAll(typeof(Patches));
+        // TODO(Unavailable): Find an appropiate method to Postfix this to, since
+        // this only needs to run once.
+        SceneManager.activeSceneChanged += (prev, next) =>
+        {
+            if (next.name == "Menu_Title")
+            {
+                // NOTE: If you setup the config on `Awake()`, the SteamAPI would
+                // still have not run, which would make `Setup()` to pick the
+                // wrong config file path; read `Config.GetConfigFilePath()` for
+                // more details
+                EndingIndicators.Config.Setup(this);
+            }
+        };
     }
 }
 
 class Patches
 {
-    [HarmonyPatch(typeof(SaveSlotCompletionIcons), "SetCompletionIconState")]
+    [HarmonyPatch(
+        typeof(SaveSlotCompletionIcons),
+        nameof(SaveSlotCompletionIcons.SetCompletionIconState)
+    )]
     static void Postfix(SaveSlotCompletionIcons __instance, SaveStats SaveStats)
     {
         var completionState = SaveStats.CompletedEndings;
 
-        if (
-            Config.EndingDisplay.Value is EndingDisplayOpts.ShowAll
-            // NOTE: Just for good messure.
-            && __instance.completionIcons.Count > 0
-        )
-        {
-            __instance.completionIcons[0].icon.transform.parent.gameObject.SetActive(true);
-        }
-
+        // NOTE: This is needed to support runtime reloading of the config.
+        var atLeastOneCompletedEnding = false;
         foreach (var completionIcon in __instance.completionIcons)
         {
             var isEndingCompleted =
                 completionIcon.state != CompletionState.None
                 && completionState.HasFlag(completionIcon.state);
 
-            if (Config.EndingDisplay.Value is EndingDisplayOpts.OnlyCompleted)
+            atLeastOneCompletedEnding |= isEndingCompleted;
+
+            if (Config.EndingDisplay is EndingDisplayOpts.OnlyCompleted)
             {
                 completionIcon.icon.gameObject.SetActive(isEndingCompleted);
             }
             else if (
-                Config.EndingDisplay.Value
+                Config.EndingDisplay
                 is (EndingDisplayOpts.ShowAllIfAnyCompleted or EndingDisplayOpts.ShowAll)
             )
             {
                 completionIcon.icon.gameObject.SetActive(true);
                 if (!isEndingCompleted)
-                    completionIcon.icon.GetComponent<Image>().color -= new Color(0f, 0f, 0f, .75f);
+                {
+                    var image = completionIcon.icon.GetComponent<Image>();
+                    image.color = image.color with { a = .25f };
+                }
             }
             else
             {
-                throw new InvalidOperationException("Someone forgot to update this branch :)");
+                throw new InvalidOperationException("Someone forgot to add more branches :)");
             }
 
-            if (Config.NaturalOrder.Value)
+            if (Config.NaturalOrder)
             {
                 completionIcon.icon.transform.SetAsFirstSibling();
             }
+            // NOTE: This is needed to support runtime reloading of the config.
+            else
+            {
+                completionIcon.icon.transform.SetAsLastSibling();
+            }
+        }
+
+        // NOTE: Just for good messure.
+        if (__instance.completionIcons.Count > 0)
+        {
+            __instance
+                .completionIcons[0]
+                .icon.transform.parent.gameObject.SetActive(
+                    Config.EndingDisplay is EndingDisplayOpts.ShowAll || atLeastOneCompletedEnding
+                );
         }
     }
 }

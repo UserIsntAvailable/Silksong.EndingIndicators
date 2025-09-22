@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.IO;
+using System.Reflection;
 using BepInEx.Configuration;
 using UnityEngine;
 
@@ -8,42 +10,98 @@ static class Config
 {
     public enum EndingDisplayOpts
     {
+        [Description(nameof(EndingDisplayOpts.OnlyCompleted))]
         OnlyCompleted,
+
+        [Description(nameof(EndingDisplayOpts.ShowAllIfAnyCompleted))]
         ShowAllIfAnyCompleted,
+
+        [Description(nameof(EndingDisplayOpts.ShowAll))]
         ShowAll,
     }
 
-    static ConfigFile _configFile = null!;
-    static ConfigFile ConfigFile =>
-        _configFile is not null
-            ? _configFile
-            : _configFile = new ConfigFile(GetModConfigFilePath(), saveOnInit: true);
+    static ConfigFile _config = null!;
 
     // TODO(Unavailable): IncludeHeraldEnding
 
     static ConfigEntry<EndingDisplayOpts> _endingDisplay = null!;
-    public static ConfigEntry<EndingDisplayOpts> EndingDisplay =>
-        _endingDisplay is not null
-            ? _endingDisplay
-            : _endingDisplay = ConfigFile.Bind(
-                "Options",
-                nameof(EndingDisplay),
-                EndingDisplayOpts.OnlyCompleted,
-                "How endings should be displayed"
-            );
+    public static EndingDisplayOpts EndingDisplay => _endingDisplay.Value;
 
     static ConfigEntry<bool> _naturalOrder = null!;
-    public static ConfigEntry<bool> NaturalOrder =>
-        _naturalOrder is not null
-            ? _naturalOrder
-            : _naturalOrder = ConfigFile.Bind(
-                "Options",
-                nameof(NaturalOrder),
-                false,
-                "Reverse the order of the endings to match their natural order of unlocking"
-            );
+    public static bool NaturalOrder => _naturalOrder.Value;
 
-    static string GetModConfigFilePath()
+    // Reflection crimes incoming. Reader discretion needed.
+    //
+    // So, there is no currently a way to either change the file path of the
+    // default config created by BepInEx, or tell `ConfigurationManager` to look
+    // for custom file paths (read `GetConfigFilePath()` for the details of why
+    // this is relevant).
+    //
+    // The former _might_ get fixed by https://github.com/BepInEx/BepInEx/pull/267,
+    // but I doubt this is being merged any time soon. For the latter, the main
+    // maintainer has expressed no interest in supporting custom file paths.
+    // https://github.com/BepInEx/BepInEx.ConfigurationManager/issues/66#issuecomment-1546635871.
+    //
+    // So there is two ways to move forward. Either use reflection to patch
+    // `BaseUnityPlugin.Config`, or to create a fork of `ConfigurationManager`
+    // that supports custom file paths. I don't have any interest in maintaining
+    // and recommending a custom fork, so for now I will wait and see what other
+    // Silksong modders do.
+    //
+    // In the meantime, since `BepInEx` itself recommends the use of
+    // `ConfigurationManager`, then reflection is really the only option (I
+    // could of course just not support `ConfigurationManager`, but changing
+    // settings in-game is way to convenient to not have it).
+    public static void Setup(Plugin plugin)
+    {
+        if (_config is not null)
+            return;
+
+        var newConfig = new ConfigFile(
+            GetConfigFilePath(),
+            saveOnInit: false,
+            plugin.Info.Metadata
+        );
+
+        var fieldInfo = plugin
+            .GetType()
+            .BaseType?.GetField(
+                $"<{nameof(Plugin.Config)}>k__BackingField",
+                BindingFlags.Instance | BindingFlags.NonPublic
+            );
+        if (fieldInfo is not null)
+        {
+            fieldInfo.SetValue(plugin, newConfig);
+        }
+        else
+        {
+            Debug.LogError(
+                $"[{Plugin.Id}] Patching of `Plugin.Config` failed. ConfigurationManager discovery will not work"
+            );
+        }
+
+        // TODO(Unavailable): Listen to `ConfigFile.ConfigReloaded` to allow
+        // direct file modifications.
+
+        _config = newConfig;
+        _endingDisplay = _config.Bind(
+            "Options",
+            nameof(EndingDisplay),
+            EndingDisplayOpts.OnlyCompleted,
+            "When the ending indicators should be displayed"
+        );
+        _naturalOrder = _config.Bind(
+            "Options",
+            nameof(NaturalOrder),
+            false,
+            "Reverse the order of the endings to match their natural order of unlocking"
+        );
+    }
+
+    // Steam Save Cloud allows modders to sync config files between devices
+    // if the created files follow the developer's config file pattern (in this
+    // case *.dat [it also searches files recursively]).
+    static string GetConfigFilePath()
     {
         var platform = Platform.Current as DesktopPlatform;
         var userId = platform?.onlineSubsystem?.UserId;
