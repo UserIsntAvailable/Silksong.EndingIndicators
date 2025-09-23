@@ -34,8 +34,8 @@ static class Config
     //
     // So, there is no currently a way to either change the file path of the
     // default config created by BepInEx, or tell `ConfigurationManager` to look
-    // for custom file paths (read `GetConfigFilePath()` for the details of why
-    // this is relevant).
+    // for custom file paths; read `GetConfigFilePath()` for the details of why
+    // this is relevant.
     //
     // The former _might_ get fixed by https://github.com/BepInEx/BepInEx/pull/267,
     // but I doubt this is being merged any time soon. For the latter, the main
@@ -75,13 +75,10 @@ static class Config
         }
         else
         {
-            Debug.LogError(
-                $"[{Plugin.Id}] Patching of `Plugin.Config` failed. ConfigurationManager discovery will not work"
+            Log.Error(
+                "Patching of `Plugin.Config` failed. ConfigurationManager discovery will not work"
             );
         }
-
-        // TODO(Unavailable): Listen to `ConfigFile.ConfigReloaded` to allow
-        // direct file modifications.
 
         _config = newConfig;
         _endingDisplay = _config.Bind(
@@ -96,6 +93,8 @@ static class Config
             false,
             "Reverse the order of the endings to match their natural order of unlocking"
         );
+
+        Log.Debug("Config parsed successfully");
     }
 
     // Steam Save Cloud allows modders to sync config files between devices
@@ -106,13 +105,16 @@ static class Config
         var platform = Platform.Current as DesktopPlatform;
         var userId = platform?.onlineSubsystem?.UserId;
         var accId = string.IsNullOrEmpty(userId) ? "default" : userId!;
-
-        return Path.Combine(
+        var configFilePath = Path.Combine(
             Application.persistentDataPath,
             accId,
             "plugins",
             Plugin.Id,
             $"config.dat"
         );
+
+        Log.Debug($"Config file located at: {configFilePath}");
+
+        return configFilePath;
     }
 }

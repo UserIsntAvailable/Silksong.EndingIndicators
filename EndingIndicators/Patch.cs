@@ -1,7 +1,6 @@
 using System;
 using BepInEx;
 using HarmonyLib;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static EndingIndicators.Config;
 using static SaveSlotCompletionIcons;
@@ -11,29 +10,29 @@ namespace EndingIndicators;
 [BepInAutoPlugin(id: "unavailable.ending-indicators")]
 public partial class Plugin : BaseUnityPlugin
 {
+    internal static Plugin _instance = null!;
     static Harmony _harmony = null!;
 
     void Awake()
     {
+        Log.Debug("Mod loaded");
+
+        _instance = this;
         _harmony = Harmony.CreateAndPatchAll(typeof(Patches));
-        // TODO(Unavailable): Find an appropiate method to Postfix this to, since
-        // this only needs to run once.
-        SceneManager.activeSceneChanged += (prev, next) =>
-        {
-            if (next.name == "Menu_Title")
-            {
-                // NOTE: If you setup the config on `Awake()`, the SteamAPI would
-                // still have not run, which would make `Setup()` to pick the
-                // wrong config file path; read `Config.GetConfigFilePath()` for
-                // more details
-                EndingIndicators.Config.Setup(this);
-            }
-        };
     }
 }
 
 class Patches
 {
+    [HarmonyPatch(typeof(UIManager), nameof(UIManager.Awake))]
+    static void Prefix()
+    {
+        // NOTE: If you setup the config on `Plugin.Awake()`, the SteamAPI would
+        // still have not run, which would make `Setup()` to pick the wrong
+        // config file path; read `Config.GetConfigFilePath()` for more details.
+        Config.Setup(Plugin._instance);
+    }
+
     [HarmonyPatch(
         typeof(SaveSlotCompletionIcons),
         nameof(SaveSlotCompletionIcons.SetCompletionIconState)
