@@ -30,6 +30,13 @@ class Patches
         // NOTE: If you setup the config on `Plugin.Awake()`, the SteamAPI would
         // still have not run, which would make `Setup()` to pick the wrong
         // config file path; read `Config.GetConfigFilePath()` for more details.
+        //
+        // This is still not perfect, since `ConfigurationManager` could be
+        // opened before "Menu_Title" is active, which would make it look like
+        // there is not a config available on application launch. The best
+        // solution would be to also patch `SteamOnlineSubsystem` constructor; I
+        // really doubt this is gonna end up being a problem, so I'm gonna leave
+        // it like this.
         Config.Setup(Plugin._instance);
     }
 
