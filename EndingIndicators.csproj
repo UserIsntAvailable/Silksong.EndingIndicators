@@ -34,6 +34,7 @@
 
   <Target Name="CopyMod" AfterTargets="PostBuildEvent" Condition="'$(SilksongFolder)' != ''">
     <ItemGroup>
+      <Binaries Include="LICENSE"/>
       <Binaries Include="$(TargetPath)"/>
       <Binaries Include="$(TargetDir)/$(TargetName).pdb"/>
     </ItemGroup>
