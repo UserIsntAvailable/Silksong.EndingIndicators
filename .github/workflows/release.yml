@@ -63,7 +63,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |-
-          DESCRIPTION=$(gh repo view --json description --jq .description ${{ github.repository }})
+          DESCRIPTION=$(gh repo view --json description --jq .description)
           echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
       - name: Generate package manifest
         run: |-
@@ -105,4 +105,4 @@ jobs:
       - name: Install tcli
         run: dotnet tool install --global tcli
       - name: Publish to thunderstore
-        run: tcli publish --token ${{ secrets.TS_TOKEN }}
+        run: dotnet tcli publish --token ${{ secrets.TS_TOKEN }}
