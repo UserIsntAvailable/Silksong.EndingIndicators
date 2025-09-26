@@ -6,4 +6,3 @@
 - Initial functionality
 
 [0.1.0]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/releases/tag/v0.1.0
-

@@ -3,8 +3,6 @@
 A `Hollow Knight: Silksong` mod that shows which endings were completed
 for every save slot.
 
-<!-- TODO(Unavailable): Automate the process of creating releases -->
-
 **Github Release**:
 https://github.com/UserIsntAvailable/Silksong.EndingIndicators/releases/latest
 

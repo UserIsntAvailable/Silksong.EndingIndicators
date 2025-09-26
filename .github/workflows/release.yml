@@ -1,0 +1,108 @@
+name: Build and Release to GH and TS
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.name.outputs.name }}
+      version: ${{ steps.name.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build -c Release
+    - name: Get mod name
+      id: name
+      run: |-
+        NAME=$(dotnet build -getProperty:AssemblyTitle)
+        echo "name=$NAME" >> $GITHUB_OUTPUT
+    - name: Get mod version
+      id: version
+      run: |-
+        VERSION=$(dotnet build -getProperty:Version)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  gh-release:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Get latest changelog entry
+        id: changelog
+        uses: mindsers/changelog-reader-action@v2
+      - name: Create GH release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ needs.build.outputs.version }}
+          body: ${{ steps.changelog.outputs.changes }}
+          files: |
+            bin/Publish/*.zip
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+
+  # TODO(Unavailable): This would better off as its own workflow.
+  ts-release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Get mod description
+        id: description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |-
+          DESCRIPTION=$(gh repo view --json description --jq .description ${{ github.repository }})
+          echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
+      - name: Generate package manifest
+        run: |-
+          cat <<MANIFEST > thunderstore.toml
+          [config]
+          schemaVersion = "0.0.1"
+
+          [package]
+          namespace = "Unavailable"
+          name = "${{ needs.build.outputs.name }}"
+          versionNumber = "${{ needs.build.outputs.version }}"
+          description = "${{ steps.description.outputs.description }}"
+          websiteUrl = "${{ github.repositoryUrl }}"
+          containsNsfwContent = false
+
+          [package.dependencies]
+          BepInEx-BepInExPack_Silksong = "5.4.2303"
+
+          [build]
+          icon = "assets/icon.png"
+          readme = "README.md"
+          outdir = "build"
+
+          [[build.copy]]
+          source = "dist"
+          target = ""
+
+          [publish]
+          repository = "https://thunderstore.io"
+          communities = ["hollow-knight-silksong"]
+
+          [publish.categories]
+          hollow-knight-silksong = ["Mods", "Misc"]
+          MANIFEST 
+      - name: Create dist directory
+        run: |-
+          7z x bin/Publish/*.zip -odist
+          cp CHANGELOG.md dist
+      - name: Install tcli
+        run: dotnet tool install --global tcli
+      - name: Publish to thunderstore
+        run: tcli publish --token ${{ secrets.TS_TOKEN }}

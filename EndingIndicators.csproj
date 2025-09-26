@@ -11,7 +11,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <RestoreAdditionalProjectSources>
-        https://nuget.bepinex.dev/v3/index.json
+      https://nuget.bepinex.dev/v3/index.json
     </RestoreAdditionalProjectSources>
     <!--Allow access of private members at runtime.-->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
