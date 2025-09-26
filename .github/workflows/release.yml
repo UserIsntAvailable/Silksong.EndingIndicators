@@ -1,4 +1,4 @@
-name: Build and Release to GH and TS
+name: Build and Release
 
 on:
   push:
@@ -9,9 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      name: ${{ steps.name.outputs.name }}
       version: ${{ steps.version.outputs.version }}
-      description: ${{ steps.description.outputs.description }}
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
@@ -21,29 +19,17 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build mod
-      run: dotnet build -v diag -c Release
+      run: dotnet build -v d -c Release
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: artifact
         path: 'bin/Publish/*.zip'
-    - name: Get mod name
-      id: name
-      run: |
-        NAME=$(dotnet build -getProperty:AssemblyTitle)
-        echo "name=$NAME" >> $GITHUB_OUTPUT
     - name: Get mod version
       id: version
       run: |
         VERSION=$(dotnet build -getProperty:Version)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-    - name: Get mod description
-      id: description
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        DESCRIPTION=$(gh repo view --json description --jq .description)
-        echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
 
   gh-release:
     runs-on: ubuntu-latest
@@ -61,6 +47,7 @@ jobs:
         id: changelog
         uses: mindsers/changelog-reader-action@v2
         with:
+          validation_level: warn
           version: ${{ needs.build.outputs.version }}
       - name: Create GH release
         uses: softprops/action-gh-release@v2
@@ -79,6 +66,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - uses: actions/checkout@v4
+      - name: Get mod name
+        id: name
+        run: |
+          NAME=$(dotnet build -getProperty:AssemblyTitle)
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+      - name: Get mod description
+        id: description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DESCRIPTION=$(gh repo view --json description --jq .description)
+          echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
       - name: Get mod artifact
         uses: actions/download-artifact@v5
         with:
@@ -86,15 +86,15 @@ jobs:
           path: artifacts
       - name: Generate package manifest
         run: |
-          cat <<'MANIFEST' > thunderstore.toml
+          cat <<'EOF' > thunderstore.toml
           [config]
           schemaVersion = "0.0.1"
 
           [package]
           namespace = "Unavailable"
-          name = "${{ needs.build.outputs.name }}"
+          name = "${{ steps.name.outputs.name }}"
           versionNumber = "${{ needs.build.outputs.version }}"
-          description = "${{ needs.build.outputs.description }}"
+          description = "${{ steps.description.outputs.description }}"
           websiteUrl = "https://github.com/${{ github.repository }}"
           containsNsfwContent = false
 
@@ -116,7 +116,7 @@ jobs:
 
           [publish.categories]
           hollow-knight-silksong = ["Mods", "Misc"]
-          MANIFEST 
+          EOF
       - name: Create dist directory
         run: |
           7z x artifacts/*.zip -odist
