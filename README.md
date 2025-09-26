@@ -6,7 +6,8 @@ for every save slot.
 **Github Release**:
 https://github.com/UserIsntAvailable/Silksong.EndingIndicators/releases/latest
 
-<!-- TODO(Unavailable): **Thunderstore**: -->
+**Thunderstore**:
+https://thunderstore.io/c/hollow-knight-silksong/p/Unavailable/EndingIndicators/
 
 ## Installation
 
