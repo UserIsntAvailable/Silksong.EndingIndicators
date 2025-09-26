@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       name: ${{ steps.name.outputs.name }}
-      version: ${{ steps.name.outputs.version }}
+      version: ${{ steps.version.outputs.version }}
       description: ${{ steps.description.outputs.description }}
     steps:
     - uses: actions/checkout@v4
@@ -29,19 +29,19 @@ jobs:
         path: 'bin/Publish/*.zip'
     - name: Get mod name
       id: name
-      run: |-
+      run: |
         NAME=$(dotnet build -getProperty:AssemblyTitle)
         echo "name=$NAME" >> $GITHUB_OUTPUT
     - name: Get mod version
       id: version
-      run: |-
+      run: |
         VERSION=$(dotnet build -getProperty:Version)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
     - name: Get mod description
       id: description
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |-
+      run: |
         DESCRIPTION=$(gh repo view --json description --jq .description)
         echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
 
@@ -51,6 +51,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - name: Get mod artifact
         uses: actions/download-artifact@v5
         with:
@@ -84,8 +85,8 @@ jobs:
           name: artifact
           path: artifacts
       - name: Generate package manifest
-        run: |-
-          cat <<MANIFEST > thunderstore.toml
+        run: |
+          cat <<'MANIFEST' > thunderstore.toml
           [config]
           schemaVersion = "0.0.1"
 
@@ -94,7 +95,7 @@ jobs:
           name = "${{ needs.build.outputs.name }}"
           versionNumber = "${{ needs.build.outputs.version }}"
           description = "${{ needs.build.outputs.description }}"
-          websiteUrl = "${{ github.repositoryUrl }}"
+          websiteUrl = "https://github.com/${{ github.repository }}"
           containsNsfwContent = false
 
           [package.dependencies]
@@ -117,9 +118,9 @@ jobs:
           hollow-knight-silksong = ["Mods", "Misc"]
           MANIFEST 
       - name: Create dist directory
-        run: |-
+        run: |
           7z x artifacts/*.zip -odist
       - name: Install tcli
         run: dotnet tool install --global tcli
       - name: Publish to thunderstore
-        run: dotnet tcli publish --token ${{ secrets.TS_TOKEN }}
+        run: tcli publish --token ${{ secrets.TS_TOKEN }}
