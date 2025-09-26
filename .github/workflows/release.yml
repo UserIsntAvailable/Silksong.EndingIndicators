@@ -11,6 +11,7 @@ jobs:
     outputs:
       name: ${{ steps.name.outputs.name }}
       version: ${{ steps.name.outputs.version }}
+      description: ${{ steps.description.outputs.description }}
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
@@ -19,8 +20,13 @@ jobs:
         dotnet-version: 8
     - name: Restore dependencies
       run: dotnet restore
-    - name: Build
+    - name: Build mod
       run: dotnet build -c Release
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifact
+        path: 'bin/Publish/*.zip'
     - name: Get mod name
       id: name
       run: |-
@@ -31,6 +37,13 @@ jobs:
       run: |-
         VERSION=$(dotnet build -getProperty:Version)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
+    - name: Get mod description
+      id: description
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |-
+        DESCRIPTION=$(gh repo view --json description --jq .description)
+        echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
 
   gh-release:
     runs-on: ubuntu-latest
@@ -38,9 +51,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Get latest changelog entry
+      - name: Get mod artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: artifact
+          path: artifacts
+      - name: Get changelog entry
         id: changelog
         uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ needs.build.outputs.version }}
       - name: Create GH release
         uses: softprops/action-gh-release@v2
         with:
@@ -48,7 +68,7 @@ jobs:
           tag_name: v${{ needs.build.outputs.version }}
           body: ${{ steps.changelog.outputs.changes }}
           files: |
-            bin/Publish/*.zip
+            'artifacts/*.zip'
           draft: false
           prerelease: true
           generate_release_notes: false
@@ -58,13 +78,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Get mod description
-        id: description
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |-
-          DESCRIPTION=$(gh repo view --json description --jq .description)
-          echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
+      - name: Get mod artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: artifact
+          path: artifacts
       - name: Generate package manifest
         run: |-
           cat <<MANIFEST > thunderstore.toml
@@ -75,7 +93,7 @@ jobs:
           namespace = "Unavailable"
           name = "${{ needs.build.outputs.name }}"
           versionNumber = "${{ needs.build.outputs.version }}"
-          description = "${{ steps.description.outputs.description }}"
+          description = "${{ needs.build.outputs.description }}"
           websiteUrl = "${{ github.repositoryUrl }}"
           containsNsfwContent = false
 
@@ -100,8 +118,7 @@ jobs:
           MANIFEST 
       - name: Create dist directory
         run: |-
-          7z x bin/Publish/*.zip -odist
-          cp CHANGELOG.md dist
+          7z x artifacts/*.zip -odist
       - name: Install tcli
         run: dotnet tool install --global tcli
       - name: Publish to thunderstore
