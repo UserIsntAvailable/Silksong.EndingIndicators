@@ -1,4 +1,4 @@
-# Ending Indicators
+# EndingIndicators
 
 A `Hollow Knight: Silksong` mod that shows which endings were completed
 for every save slot.
@@ -7,12 +7,11 @@ for every save slot.
 https://github.com/UserIsntAvailable/Silksong.EndingIndicators/releases/latest
 
 **Thunderstore**:
-https://thunderstore.io/c/hollow-knight-silksong/p/Unavailable/EndingIndicators/
+https://thunderstore.io/c/hollow-knight-silksong/p/Unavailable/EndingIndicators
 
-## Installation
+## Installation (manual)
 
 1. [Download and install BepInEx].
-* You can follow this post if you want to run it through [Steam on Linux].
 2. Ensure that the game has run at least once so that a `plugins`
    directory is generated in the `BepInEx` directory besides the game
    executable.
@@ -39,6 +38,8 @@ it prettier (add some screenshots?). -->
 [Options]
 
 ## When the ending indicators should be displayed
+## Endings that are not yet completed, will be shown in a more transparent color
+# if `ShowAllIfAnyCompleted` or `ShowAll` are used.
 # Setting type: EndingDisplayOpts
 # Default value: OnlyCompleted
 # Acceptable values: OnlyCompleted, ShowAllIfAnyCompleted, ShowAll
@@ -51,5 +52,4 @@ NaturalOrder = false
 ```
 
 [Download and install BepInEx]: https://docs.bepinex.dev/articles/user_guide/installation/index.html
-[Steam on Linux]: https://discord.com/channels/879125729936298015/1408110517049884783/1415820971507454164
 [ConfigurationManager]: https://github.com/BepInEx/BepInEx.ConfigurationManager

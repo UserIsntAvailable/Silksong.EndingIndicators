@@ -1,10 +1,27 @@
 # Changelog
 
+## [0.1.4] - 2025-09-27
+
+### Changed
+
+- Remove mention of how to manually the mod on `Steam Linux`
+
+BepInEx `v5.4.23.4` does not longer need a custom `doorstop` script, so
+the installation guide provided in the website sufficient (for the most
+part...)
+
+- Add comments about how `ShowAllIfAnyCompleted` and `ShowAll` display
+works
+
+### Fixed
+
+- Changelog links to version `1.0.2` and `1.0.3`
+
 ## [0.1.3] - 2025-09-26
 
 ### Changed
 
-- New thunderstore mod icon
+- New Thunderstore mod icon
 
 ## [0.1.2] - 2025-09-26
 
@@ -24,7 +41,8 @@
 
 - Initial functionality
 
-[0.1.3]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/compare/v0.1.1...v0.1.2
+[0.1.4]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/compare/1eded41de90d40527d2a405e0b5cc26ba35ef555...v0.1.3
+[0.1.2]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/compare/v0.1.1...1eded41de90d40527d2a405e0b5cc26ba35ef555
 [0.1.1]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/UserIsntAvailable/Silksong.EndingIndicators/releases/tag/v0.1.0
