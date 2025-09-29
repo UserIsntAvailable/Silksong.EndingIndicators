@@ -2,7 +2,9 @@ using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using BepInEx.Configuration;
+using GlobalEnums;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace EndingIndicators;
 
@@ -30,28 +32,14 @@ static class Config
     static ConfigEntry<bool> _naturalOrder = null!;
     public static bool NaturalOrder => _naturalOrder.Value;
 
-    // Reflection crimes incoming. Reader discretion needed.
-    //
     // So, there is no currently a way to either change the file path of the
     // default config created by BepInEx, or tell `ConfigurationManager` to look
     // for custom file paths; read `GetConfigFilePath()` for the details of why
     // this is relevant.
     //
-    // The former _might_ get fixed by https://github.com/BepInEx/BepInEx/pull/267,
-    // but I doubt this is being merged any time soon. For the latter, the main
-    // maintainer has expressed no interest in supporting custom file paths.
-    // https://github.com/BepInEx/BepInEx.ConfigurationManager/issues/66#issuecomment-1546635871.
-    //
-    // So there is two ways to move forward. Either use reflection to patch
-    // `BaseUnityPlugin.Config`, or to create a fork of `ConfigurationManager`
-    // that supports custom file paths. I don't have any interest in maintaining
-    // and recommending a custom fork, so for now I will wait and see what other
-    // Silksong modders do.
-    //
-    // In the meantime, since `BepInEx` itself recommends the use of
-    // `ConfigurationManager`, then reflection is really the only option (I
-    // could of course just not support `ConfigurationManager`, but changing
-    // settings in-game is way to convenient to not have it).
+    // So, the simplest way to make `ConfigurationManager` discover the config
+    // file, is to create a new `ConfigFile` with the appropiate path, and set
+    // it throught reflection.
     public static void Setup(Plugin plugin)
     {
         if (_config is not null)
@@ -85,21 +73,47 @@ static class Config
             "Options",
             nameof(EndingDisplay),
             EndingDisplayOpts.OnlyCompleted,
-            "When the ending indicators should be displayed"
+            """
+            How the indicators should be displayed.
+            Endings that are not yet completed, will be shown in a more transparent color
+            if `ShowAllIfAnyCompleted` or `ShowAll` are used.
+            """
         );
         _naturalOrder = _config.Bind(
             "Options",
             nameof(NaturalOrder),
             false,
-            "Reverse the order of the endings to match their natural order of unlocking"
+            "Reverse the order of the endings to match their natural order of unlocking."
         );
 
         Log.Debug("Config parsed successfully");
+
+        _config.SettingChanged += (_, args) =>
+        {
+            var uiManager = UIManager.instance;
+            if (
+                uiManager.uiState is UIState.MAIN_MENU_HOME
+                && uiManager.menuState is MainMenuState.SAVE_PROFILES
+            )
+            {
+                var saveSlots = GameObject.FindObjectsByType<SaveSlotButton>(
+                    FindObjectsSortMode.None
+                );
+                foreach (var saveSlot in saveSlots)
+                {
+                    saveSlot.saveSlotCompletionIcons.SetCompletionIconState(saveSlot.saveStats);
+                }
+
+                var key = args.ChangedSetting.Definition.Key;
+                Log.Debug($"{key} setting changed. Live UI reload applied");
+            }
+        };
     }
 
-    // Steam Save Cloud allows modders to sync config files between devices
-    // if the created files follow the developer's config file pattern (in this
-    // case *.dat [it also searches files recursively]).
+    // Putting things into `Application.persistentDataPath` (in this case, this
+    // is the `SAVEFILES` directory), allows Steam Save Cloud to pick up the files
+    // in order to share files between devices; just make sure the files finish
+    // on `*.dat`.
     static string GetConfigFilePath()
     {
         var platform = Platform.Current as DesktopPlatform;

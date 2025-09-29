@@ -37,9 +37,9 @@ it prettier (add some screenshots?). -->
 
 [Options]
 
-## When the ending indicators should be displayed
+## How the indicators should be displayed
 ## Endings that are not yet completed, will be shown in a more transparent color
-# if `ShowAllIfAnyCompleted` or `ShowAll` are used.
+## if `ShowAllIfAnyCompleted` or `ShowAll` are used.
 # Setting type: EndingDisplayOpts
 # Default value: OnlyCompleted
 # Acceptable values: OnlyCompleted, ShowAllIfAnyCompleted, ShowAll

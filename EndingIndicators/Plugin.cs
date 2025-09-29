@@ -18,7 +18,8 @@ public partial class Plugin : BaseUnityPlugin
         Log.Debug("Mod loaded");
 
         _instance = this;
-        _harmony = Harmony.CreateAndPatchAll(typeof(Patches));
+        _harmony = new Harmony(Plugin.Id);
+        _harmony.PatchAll(typeof(Patches));
     }
 }
 
