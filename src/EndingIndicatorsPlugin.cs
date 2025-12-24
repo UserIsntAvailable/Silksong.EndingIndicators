@@ -2,15 +2,15 @@ using System;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine.UI;
-using static EndingIndicators.Config;
+using static Silksong.EndingIndicators.Config;
 using static SaveSlotCompletionIcons;
 
-namespace EndingIndicators;
+namespace Silksong.EndingIndicators;
 
-[BepInAutoPlugin(id: "unavailable.ending-indicators")]
-public partial class Plugin : BaseUnityPlugin
+[BepInAutoPlugin(id: "io.github.userisntavailable.endingindicators")]
+public partial class EndingIndicatorsPlugin : BaseUnityPlugin
 {
-    internal static Plugin _instance = null!;
+    internal static EndingIndicatorsPlugin _instance = null!;
     static Harmony _harmony = null!;
 
     void Awake()
@@ -18,7 +18,7 @@ public partial class Plugin : BaseUnityPlugin
         Log.Debug("Mod loaded");
 
         _instance = this;
-        _harmony = new Harmony(Plugin.Id);
+        _harmony = new Harmony(Id);
         _harmony.PatchAll(typeof(Patches));
     }
 }
@@ -38,7 +38,7 @@ class Patches
         // solution would be to also patch `SteamOnlineSubsystem` constructor; I
         // really doubt this is gonna end up being a problem, so I'm gonna leave
         // it like this.
-        Config.Setup(Plugin._instance);
+        Config.Setup(EndingIndicatorsPlugin._instance);
     }
 
     [HarmonyPatch(

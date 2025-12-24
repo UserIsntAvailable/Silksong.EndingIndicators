@@ -6,7 +6,7 @@ using GlobalEnums;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EndingIndicators;
+namespace Silksong.EndingIndicators;
 
 static class Config
 {

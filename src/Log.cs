@@ -1,4 +1,4 @@
-namespace EndingIndicators;
+namespace Silksong.EndingIndicators;
 
 static class Log
 {
