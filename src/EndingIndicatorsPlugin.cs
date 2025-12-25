@@ -1,52 +1,60 @@
 using System;
 using BepInEx;
 using HarmonyLib;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Silksong.DataManager;
 using UnityEngine.UI;
-using static Silksong.EndingIndicators.Config;
 using static SaveSlotCompletionIcons;
 
 namespace Silksong.EndingIndicators;
 
 [BepInAutoPlugin(id: "io.github.userisntavailable.endingindicators")]
-public partial class EndingIndicatorsPlugin : BaseUnityPlugin
+[BepInDependency(DataManagerPlugin.Id)]
+public partial class EndingIndicatorsPlugin : BaseUnityPlugin, IProfileDataMod<Config>
 {
-    internal static EndingIndicatorsPlugin _instance = null!;
     static Harmony _harmony = null!;
+
+    internal static EndingIndicatorsPlugin Instance { get; private set; } = null!;
 
     void Awake()
     {
         Log.Debug("Mod loaded");
 
-        _instance = this;
+        Instance = this;
         _harmony = new Harmony(Id);
         _harmony.PatchAll(typeof(Patches));
     }
+
+    public Config? ProfileData { get; set; }
+}
+
+public record Config
+{
+    public enum EndingDisplayOpts
+    {
+        OnlyCompleted,
+        ShowAllIfAnyCompleted,
+        ShowAll,
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public EndingDisplayOpts EndingDisplay { get; set; } = EndingDisplayOpts.OnlyCompleted;
+
+    public bool NaturalOrder { get; set; } = false;
+
+    // TODO(Unavailable): IncludeHeraldEnding
 }
 
 class Patches
 {
-    [HarmonyPatch(typeof(UIManager), nameof(UIManager.Awake))]
-    static void Prefix()
-    {
-        // NOTE: If you setup the config on `Plugin.Awake()`, the SteamAPI would
-        // still have not run, which would make `Setup()` to pick the wrong
-        // config file path; read `Config.GetConfigFilePath()` for more details.
-        //
-        // This is still not perfect, since `ConfigurationManager` could be
-        // opened before "Menu_Title" is active, which would make it look like
-        // there is not a config available on application launch. The best
-        // solution would be to also patch `SteamOnlineSubsystem` constructor; I
-        // really doubt this is gonna end up being a problem, so I'm gonna leave
-        // it like this.
-        Config.Setup(EndingIndicatorsPlugin._instance);
-    }
-
     [HarmonyPatch(
         typeof(SaveSlotCompletionIcons),
         nameof(SaveSlotCompletionIcons.SetCompletionIconState)
     )]
     static void Postfix(SaveSlotCompletionIcons __instance, SaveStats SaveStats)
     {
+        var config = EndingIndicatorsPlugin.Instance.ProfileData ?? new();
         var completionState = SaveStats.CompletedEndings;
 
         // NOTE: This is needed to support runtime reloading of the config.
@@ -59,13 +67,16 @@ class Patches
 
             atLeastOneCompletedEnding |= isEndingCompleted;
 
-            if (Config.EndingDisplay is EndingDisplayOpts.OnlyCompleted)
+            if (config.EndingDisplay is Config.EndingDisplayOpts.OnlyCompleted)
             {
                 completionIcon.icon.gameObject.SetActive(isEndingCompleted);
             }
             else if (
-                Config.EndingDisplay
-                is (EndingDisplayOpts.ShowAllIfAnyCompleted or EndingDisplayOpts.ShowAll)
+                config.EndingDisplay
+                is (
+                    Config.EndingDisplayOpts.ShowAllIfAnyCompleted
+                    or Config.EndingDisplayOpts.ShowAll
+                )
             )
             {
                 completionIcon.icon.gameObject.SetActive(true);
@@ -80,7 +91,7 @@ class Patches
                 throw new InvalidOperationException("Someone forgot to add more branches :)");
             }
 
-            if (Config.NaturalOrder)
+            if (config.NaturalOrder)
             {
                 completionIcon.icon.transform.SetAsFirstSibling();
             }
@@ -97,7 +108,8 @@ class Patches
             __instance
                 .completionIcons[0]
                 .icon.transform.parent.gameObject.SetActive(
-                    Config.EndingDisplay is EndingDisplayOpts.ShowAll || atLeastOneCompletedEnding
+                    config.EndingDisplay is Config.EndingDisplayOpts.ShowAll
+                        || atLeastOneCompletedEnding
                 );
         }
     }

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Drop support for `ConfigurationManager`
+
 ## [0.2.0] - 2025-09-29
 
 ### Added
