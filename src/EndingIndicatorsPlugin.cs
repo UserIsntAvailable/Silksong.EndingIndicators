@@ -1,4 +1,3 @@
-using System;
 using BepInEx;
 using HarmonyLib;
 using Newtonsoft.Json;
@@ -85,10 +84,6 @@ class Patches
                     var image = completionIcon.icon.GetComponent<Image>();
                     image.color = image.color with { a = .25f };
                 }
-            }
-            else
-            {
-                throw new InvalidOperationException("Someone forgot to add more branches :)");
             }
 
             if (config.NaturalOrder)
