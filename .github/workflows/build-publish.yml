@@ -57,7 +57,7 @@ jobs:
         path: nuget/
     - name: Generate attestation
       id: attest
-      uses: actions/attest-build-provenance@v3
+      uses: actions/attest-build-provenance@v4
       if: github.event_name == 'push'
       with:
         subject-path: |
