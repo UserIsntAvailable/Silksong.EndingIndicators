@@ -46,12 +46,12 @@ jobs:
         echo Version is $VERSION
         echo "version=$VERSION" >> $GITHUB_OUTPUT
     - name: Upload thunderstore artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: mod-bundle
         path: bin/Publish/*.zip
     - name: Upload nuget artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: nuget
         path: nuget/
@@ -85,7 +85,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - name: Download artifact
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: mod-bundle
         path: artifacts
@@ -178,7 +178,7 @@ jobs:
       with:
         dotnet-version: 9.x
     - name: Download artifact
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: nuget
         path: nuget/
@@ -199,7 +199,7 @@ jobs:
 
     steps:
     - name: Download artifact
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: mod-bundle
         path: artifacts
